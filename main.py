@@ -6,29 +6,29 @@ from moviepy.editor import *
 from tqdm import tqdm
 
 
-def get_frame_count(path):
+def get_frame_count(path):  # literally
     cap = cv2.VideoCapture(path)
     return cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
 
-def get_fps(path):
+def get_fps(path):  # literally
     cap = cv2.VideoCapture(path)
     return cap.get(cv2.CAP_PROP_FPS)
 
 
-def get_ratio(path):
+def get_ratio(path):  # literally
     cap = cv2.VideoCapture(path)
     return cap.get(cv2.CAP_PROP_FRAME_WIDTH) / cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
 
-def video2imgs(path, size):
+def video2imgs(path, size):  # convert video to list of images
     img_list = []
     cap = cv2.VideoCapture(path)
-    with tqdm(total=get_frame_count(path)) as pbar:
+    with tqdm(total=get_frame_count(path)) as pbar:  # add progress bar
         while cap.isOpened():
             ret, frame = cap.read()
             if ret:
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # convert to grayscale
                 image = cv2.resize(gray, size, interpolation=cv2.INTER_AREA)
                 img_list.append(image)
             else:
@@ -72,9 +72,10 @@ def char2picture(picture_chars, width, height):
 
 
 def char2video(frame_array, width, height, fps=24):
+    # part of output_silent
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video = cv2.VideoWriter(os.path.abspath(".") + '\\silent.avi', fourcc, fps, (width, height))
-    with tqdm(total=len(frame_array)) as pbar:
+    with tqdm(total=len(frame_array)) as pbar:  # add progress bar
         for frame in frame_array:
             video.write(char2picture(frame, width, height))
             pbar.update(1)
@@ -82,21 +83,25 @@ def char2video(frame_array, width, height, fps=24):
 
 
 def output_silent(path, width, height):
-    imgs = video2imgs(path, (width, height))
-    video_chars = imgs2chars(imgs)
+    # Save the temporary video without BGM
+    imgs = video2imgs(path, (width, height))  # convert video to lists of frames
+    video_chars = imgs2chars(imgs)  # convert frames to chars respectively
     char2video(video_chars, 1100, 960, get_fps(path))
 
 
 def output_includemusic(path):
+    # Get and save the BGM
     video = VideoFileClip(path)
     audio = video.audio
     audio.write_audiofile('tmp_music.mp3')
 
+    # Combine audio and video
     video = VideoFileClip("silent.avi")
     audio_clip = AudioFileClip('tmp_music.mp3')
     video = video.set_audio(audio_clip)
     video.write_videofile("output.mp4")
 
+    # delet temporary files
     if os.path.exists("tmp_music.mp3"):
         os.remove("tmp_music.mp3")
 
