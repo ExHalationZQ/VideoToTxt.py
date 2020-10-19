@@ -1,10 +1,14 @@
 import numpy
 import cv2
 from PIL import Image, ImageDraw
-import time
 import os
-import subprocess
 from moviepy.editor import *
+from tqdm import tqdm
+
+
+def get_frame_count(path):
+    cap = cv2.VideoCapture(path)
+    return cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
 
 def get_fps(path):
@@ -20,14 +24,16 @@ def get_ratio(path):
 def video2imgs(path, size):
     img_list = []
     cap = cv2.VideoCapture(path)
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if ret:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            image = cv2.resize(gray, size, interpolation=cv2.INTER_AREA)
-            img_list.append(image)
-        else:
-            break
+    with tqdm(total=get_frame_count(path)) as pbar:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                image = cv2.resize(gray, size, interpolation=cv2.INTER_AREA)
+                img_list.append(image)
+            else:
+                break
+            pbar.update(1)
     cap.release()
     return img_list
 
@@ -55,16 +61,6 @@ def imgs2chars(imgs):
     return result
 
 
-def play(video_chars):
-    width, height = len(video_chars[0][0]), len(video_chars[0])
-    for pic_i in range(len(video_chars)):
-        for line_i in range(height):
-            print(video_chars[pic_i][line_i])
-        time.sleep(1 / 24)
-
-        os.system('cls')
-
-
 def char2picture(picture_chars, width, height):
     img_i = Image.new("RGB", (width, height), (255, 255, 255))
     draw_i = ImageDraw.Draw(img_i)
@@ -78,24 +74,20 @@ def char2picture(picture_chars, width, height):
 def char2video(frame_array, width, height, fps=24):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video = cv2.VideoWriter(os.path.abspath(".") + '\\silent.avi', fourcc, fps, (width, height))
-    for frame in frame_array:
-        video.write(char2picture(frame, width, height))
+    with tqdm(total=len(frame_array)) as pbar:
+        for frame in frame_array:
+            video.write(char2picture(frame, width, height))
+            pbar.update(1)
     video.release()
 
 
-
-
-
-if __name__ == "__main__":
-    path = "video.flv"
-
-    ratio = get_ratio(path)
-    width, height = int(ratio * 60), 60
-
+def output_silent(path, width, height):
     imgs = video2imgs(path, (width, height))
     video_chars = imgs2chars(imgs)
     char2video(video_chars, 1100, 960, get_fps(path))
 
+
+def output_includemusic(path):
     video = VideoFileClip(path)
     audio = video.audio
     audio.write_audiofile('tmp_music.mp3')
@@ -110,4 +102,13 @@ if __name__ == "__main__":
 
     if os.path.exists("silent.avi"):
         os.remove("silent.avi")
-    # play(imgs) print the result in cmd
+
+
+if __name__ == "__main__":
+    path = "video.flv"
+
+    ratio = get_ratio(path)
+    width, height = int(ratio * 60), 60
+
+    output_silent(path, width, height)
+    output_includemusic(path)
