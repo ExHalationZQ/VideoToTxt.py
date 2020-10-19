@@ -42,6 +42,7 @@ def img2char(img):
     str = ".,:;+*?%S#@"
     str = str[::-1]
     result = []
+    # 灰度最大值255，以下两步意在将每个像素对应的值设为str中的下标
     percents = img / 255
     indexes = (percents * (len(str) - 1)).astype(numpy.int)
     height, width = img.shape
